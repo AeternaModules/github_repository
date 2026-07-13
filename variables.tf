@@ -135,38 +135,78 @@ EOT
       repository           = string
     }))
   }))
-  # --- Unconfirmed validation candidates, derived from github_repository's provider source ---
-  # Not auto-enabled: either a bespoke provider validator we can't safely translate,
-  # or a path that crosses a list-typed block (needs its own for_each wrapping).
-  # Review, translate into a real validation{} block above, and delete once confirmed.
-  # path: name
-  #   condition: can(regex("^[-a-zA-Z0-9_.]{1,100}$", value))
-  #   message:   must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less
-  # path: visibility
-  #   condition: contains(["public", "private", "internal"], value)
-  #   message:   must be one of: public, private, internal
-  # path: security_and_analysis.advanced_security.status
-  #   condition: contains(["enabled", "disabled"], value)
-  #   message:   must be one of: enabled, disabled
-  # path: security_and_analysis.code_security.status
-  #   condition: contains(["enabled", "disabled"], value)
-  #   message:   must be one of: enabled, disabled
-  # path: security_and_analysis.secret_scanning.status
-  #   condition: contains(["enabled", "disabled"], value)
-  #   message:   must be one of: enabled, disabled
-  # path: security_and_analysis.secret_scanning_push_protection.status
-  #   condition: contains(["enabled", "disabled"], value)
-  #   message:   must be one of: enabled, disabled
-  # path: security_and_analysis.secret_scanning_ai_detection.status
-  #   condition: contains(["enabled", "disabled"], value)
-  #   message:   must be one of: enabled, disabled
-  # path: security_and_analysis.secret_scanning_non_provider_patterns.status
-  #   condition: contains(["enabled", "disabled"], value)
-  #   message:   must be one of: enabled, disabled
-  # path: pages.build_type
-  #   source:    validateValueFunc: no recognizable `if ... { errors = append(...) }` pattern - read it by hand
-  # path: topics[*]
-  #   condition: can(regex("^[a-z0-9][a-z0-9-]{0,49}$", value))
-  #   message:   must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less
+  validation {
+    condition = alltrue([
+      for k, v in var.repositories : (
+        can(regex("^[-a-zA-Z0-9_.]{1,100}$", v.name))
+      )
+    ])
+    error_message = "must include only alphanumeric characters, underscores or hyphens and consist of 100 characters or less"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.repositories : (
+        v.visibility == null || (contains(["public", "private", "internal"], v.visibility))
+      )
+    ])
+    error_message = "must be one of: public, private, internal"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.repositories : (
+        v.security_and_analysis == null || (v.security_and_analysis.advanced_security == null || (contains(["enabled", "disabled"], v.security_and_analysis.advanced_security.status)))
+      )
+    ])
+    error_message = "must be one of: enabled, disabled"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.repositories : (
+        v.security_and_analysis == null || (v.security_and_analysis.code_security == null || (contains(["enabled", "disabled"], v.security_and_analysis.code_security.status)))
+      )
+    ])
+    error_message = "must be one of: enabled, disabled"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.repositories : (
+        v.security_and_analysis == null || (v.security_and_analysis.secret_scanning == null || (contains(["enabled", "disabled"], v.security_and_analysis.secret_scanning.status)))
+      )
+    ])
+    error_message = "must be one of: enabled, disabled"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.repositories : (
+        v.security_and_analysis == null || (v.security_and_analysis.secret_scanning_push_protection == null || (contains(["enabled", "disabled"], v.security_and_analysis.secret_scanning_push_protection.status)))
+      )
+    ])
+    error_message = "must be one of: enabled, disabled"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.repositories : (
+        v.security_and_analysis == null || (v.security_and_analysis.secret_scanning_ai_detection == null || (contains(["enabled", "disabled"], v.security_and_analysis.secret_scanning_ai_detection.status)))
+      )
+    ])
+    error_message = "must be one of: enabled, disabled"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.repositories : (
+        v.security_and_analysis == null || (v.security_and_analysis.secret_scanning_non_provider_patterns == null || (contains(["enabled", "disabled"], v.security_and_analysis.secret_scanning_non_provider_patterns.status)))
+      )
+    ])
+    error_message = "must be one of: enabled, disabled"
+  }
+  validation {
+    condition = alltrue([
+      for k, v in var.repositories : (
+        v.topics == null || (alltrue([for x in v.topics : can(regex("^[a-z0-9][a-z0-9-]{0,49}$", x))]))
+      )
+    ])
+    error_message = "must include only lowercase alphanumeric characters or hyphens and cannot start with a hyphen and consist of 50 characters or less"
+  }
+  # Note: 1 additional provider-side validator is enforced at apply time but not mirrored as validation{} blocks here (bespoke or non-mechanically-translatable).
 }
 
